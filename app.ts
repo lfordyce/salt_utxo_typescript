@@ -1,10 +1,12 @@
 import "https://deno.land/x/dotenv/load.ts";
-import {Pool} from "https://deno.land/x/postgres/mod.ts";
-import {bold, cyan, green,} from "https://deno.land/std@0.93.0/fmt/colors.ts";
+
+// import {Pool} from "https://deno.land/x/postgres/mod.ts";
+import {Pool} from "./deps.ts";
+import {bold, cyan, green,} from "./deps.ts";
 import {
     ServerRequest,
     listenAndServe,
-} from "https://deno.land/std@0.90.0/http/server.ts";
+} from "./deps.ts";
 import {
     createRouter,
     AugmentedRequest,
@@ -13,7 +15,7 @@ import {
     jsonResponse,
     forMethod,
     NotFoundError,
-} from "https://deno.land/x/reno@v1.3.12/reno/mod.ts";
+} from "./deps.ts";
 
 import utxoServiceRepo, {UtxoService} from "./src/service/utxo.service.ts";
 import createDbService from "./src/repository/db.ts";

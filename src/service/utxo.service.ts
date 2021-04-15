@@ -1,5 +1,6 @@
 import {DbService} from "../repository/db.ts";
-import {QueryObjectResult} from "https://deno.land/x/postgres/query/query.ts";
+// import {QueryObjectResult} from "https://deno.land/x/postgres/query/query.ts";
+import {QueryObjectResult} from "../../deps.ts";
 
 export interface Utxo {
     id: string;

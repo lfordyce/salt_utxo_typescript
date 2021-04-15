@@ -1,0 +1,37 @@
+version: '3.7'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    ports:
+      - 6000:6000
+    networks:
+      - salt_network
+    depends_on:
+      - psql_utxo
+
+  psql_utxo:
+    container_name: psql_utxo
+    build:
+      context: psql
+      dockerfile: Dockerfile
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=changeme
+      - POSTGRES_DB=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # persist data even if container shuts down
+    networks:
+      - salt_network
+
+networks:
+  salt_network:
+    external: false
+    name: salt_network
+
+volumes:
+  postgres_data:
