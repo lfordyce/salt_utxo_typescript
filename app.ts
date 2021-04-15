@@ -1,7 +1,7 @@
 import "https://deno.land/x/dotenv/load.ts";
 
 import {Pool} from "./deps.ts";
-import {bold, cyan, green,} from "./deps.ts";
+import {bold, cyan, green} from "./deps.ts";
 import {
     ServerRequest,
     listenAndServe,
@@ -50,7 +50,6 @@ async function getBalance(service: Pick<UtxoService, "getBalanceByAddress">, add
         unspentOnly = spent;
     }
     const result = await service.getBalanceByAddress(address, unspentOnly);
-    console.log(result);
     if (!result) {
         throw new BalanceNotFoundError(address);
     }
@@ -104,11 +103,35 @@ const mapToErrorResponse = (e: Error) =>
 
 const router = createRouter(routes);
 
-console.log("Listening for requests...");
+function getApiPort(): string {
+    return `:${Deno.env.get("API_PORT") || "6000"}`;
+}
+
+const BINDING_PORT = getApiPort();
+
+console.log(`Listening for requests on ${BINDING_PORT}...`);
+
+function formatDate(date: Date) {
+    return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        timeZoneName: "short",
+    });
+}
+
+function logRequest(req: ServerRequest) {
+    console.log(`[${bold(formatDate(new Date()))}] ${green(req.method)}: Request for ${cyan(req.url)}`);
+}
 
 await listenAndServe(
-    ":6000",
+    BINDING_PORT,
     async (req: ServerRequest) => {
+        logRequest(req);
+
         try {
             const res = await router(req);
             return req.respond(res);
