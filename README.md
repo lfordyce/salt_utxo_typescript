@@ -4,7 +4,7 @@ Typescript implementation of the SALT Engineering Backend Technical Challenge.
 
 ### Features
 
-- Solution is implemented as an HTTP server using [Deno](https://deno.land/std/) as the Typescript runtime.
+- Solution is implemented as an HTTP server using [Deno](https://deno.land/) as the Typescript runtime.
 - PostgreSQL is used to host the BTC UTXO data for efficient query capabilities.
 - Multiple REST routes to satisfy both balance retrieval and additional data insights. 
 
