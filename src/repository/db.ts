@@ -1,4 +1,3 @@
-// import {Pool} from "https://deno.land/x/postgres/mod.ts";
 import {Pool} from "../../deps.ts";
 
 export function buildQuery(text: string, ...args: (string | string[])[]) {

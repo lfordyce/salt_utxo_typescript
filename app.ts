@@ -1,6 +1,5 @@
 import "https://deno.land/x/dotenv/load.ts";
 
-// import {Pool} from "https://deno.land/x/postgres/mod.ts";
 import {Pool} from "./deps.ts";
 import {bold, cyan, green,} from "./deps.ts";
 import {
