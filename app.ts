@@ -1,5 +1,4 @@
 import "https://deno.land/x/dotenv/load.ts";
-// import {Application, Context, helpers, Router} from "https://deno.land/x/oak/mod.ts";
 import {Pool} from "https://deno.land/x/postgres/mod.ts";
 import {bold, cyan, green,} from "https://deno.land/std@0.93.0/fmt/colors.ts";
 import {
@@ -14,7 +13,6 @@ import {
     jsonResponse,
     forMethod,
     NotFoundError,
-    RouteHandler,
 } from "https://deno.land/x/reno@v1.3.12/reno/mod.ts";
 
 import utxoServiceRepo, {UtxoService} from "./src/service/utxo.service.ts";
@@ -43,8 +41,14 @@ export class BalanceNotFoundError extends Error {
     }
 }
 
-async function getBalance(service: Pick<UtxoService, "getBalanceByAddress">, address: string) {
-    const result = await service.getBalanceByAddress(address, "false");
+async function getBalance(service: Pick<UtxoService, "getBalanceByAddress">, address: string, spent: string | null) {
+    let unspentOnly: string;
+    if (spent === null) {
+        unspentOnly = "false";
+    } else {
+        unspentOnly = spent;
+    }
+    const result = await service.getBalanceByAddress(address, unspentOnly);
     console.log(result);
     if (!result) {
         throw new BalanceNotFoundError(address);
@@ -52,14 +56,29 @@ async function getBalance(service: Pick<UtxoService, "getBalanceByAddress">, add
     return result;
 }
 
-export function createGetBalanceHandler(service: Pick<UtxoService, "getBalanceByAddress">) {
-    return async function getBalances({ routeParams: [address], queryParams: URLSearchParams }: Pick<AugmentedRequest, "routeParams">) {
-        const res = await getBalance(service, address);
+export function createGetBalanceHandler(service: Pick<UtxoService, "getBalanceByAddress" | "getAddress">) {
+    return async function getBalances({routeParams: [address], queryParams}: Pick<AugmentedRequest, "routeParams" | "queryParams">) {
+        if (address) {
+            let spent = queryParams.get('unspentOnly')
+            const res = await getBalance(service, address, spent);
+            // handle BigInt json serialization.
+            const response = JSON.stringify(res, (_, v) =>typeof v === 'bigint' ? v.toString() : v);
+            return jsonResponse(response);
+        } else {
+            const res = await service.getAddress();
+            return jsonResponse(res);
+        }
+    }
+}
+
+export function createPaginationHandler(service: Pick<UtxoService, "getIndex">) {
+    return async function getIndex({routeParams: [offset, limit]}: Pick<AugmentedRequest, "routeParams">) {
+        const res = await service.getIndex(limit, offset);
         return jsonResponse(res);
     }
 }
 
-function createErrorResponse(status: number, { message }: Error) {
+function createErrorResponse(status: number, {message}: Error) {
     return textResponse(message, {}, status);
 }
 
@@ -69,18 +88,11 @@ export const routes = createRouteMap([
             ["GET", createGetBalanceHandler(service)],
         ]),
     ],
-    ["/home", () => textResponse("Hello world!")],
-
-    // Supports RegExp routes for further granularity
-    [/^\/api\/swanson\/?([0-9]?)$/, async (req: AugmentedRequest) => {
-        const [quotesCount = "1"] = req.routeParams;
-
-        const res = await fetch(
-            `https://ron-swanson-quotes.herokuapp.com/v2/quotes/${quotesCount}`,
-        );
-
-        return jsonResponse(await res.json());
-    }],
+    ["/api/v1/records/offset/*/limit/*",
+        forMethod([
+            ["GET", createPaginationHandler(service)],
+        ]),
+    ],
 ]);
 
 const notFound = (e: NotFoundError) => createErrorResponse(404, e);
@@ -94,7 +106,7 @@ const router = createRouter(routes);
 console.log("Listening for requests...");
 
 await listenAndServe(
-    ":8000",
+    ":6000",
     async (req: ServerRequest) => {
         try {
             const res = await router(req);
@@ -104,67 +116,6 @@ await listenAndServe(
         }
     },
 );
-
-
-
-
-
-
-//
-// const getBalance = [
-//     async (ctx: Context) => {
-//         const {address, unspentOnly} = helpers.getQuery(ctx, {mergeParams: true});
-//         console.log(address)
-//         // console.log(params['address'])
-//         // console.log(params['unspentOnly'])
-//         console.log(unspentOnly)
-//         const result = await service.getBalanceByAddress(address, unspentOnly);
-//         console.log(result[0]);
-//         const single = result[0];
-//         ctx.response.status = 200;
-//         ctx.response.body = single;
-//     },
-// ];
-//
-//
-// const router: Router = new Router();
-//
-// router.get("", (ctx: Context) => {
-//     ctx.response.body = "hello world";
-// });
-//
-// router.get("/api/v1/addrs/:address", ...getBalance);
-//
-// const port = 8000;
-// const app = new Application();
-//
-// // Logger
-// app.use(async (ctx, next) => {
-//     await next();
-//     const rt = ctx.response.headers.get("X-Response-Time");
-//
-//     console.log(`${green(ctx.request.method)} ${cyan(decodeURIComponent(ctx.request.url.pathname))} - ${bold(String(rt))}`);
-// });
-//
-// // Timing
-// app.use(async (context, next) => {
-//     const start = Date.now();
-//     await next();
-//     const ms = Date.now() - start;
-//     context.response.headers.set("X-Response-Time", `${ms}ms`);
-// });
-//
-// // Hello World!
-// // app.use((ctx) => {
-// //     ctx.response.body = "Hello World!";
-// // });
-//
-// app.addEventListener('listen', () => {
-//     console.log(`Listening on localhost:${port}`);
-// });
-//
-// app.use(router.routes());
-// await app.listen({port});
 
 
 
